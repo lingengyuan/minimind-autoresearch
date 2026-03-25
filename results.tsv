@@ -1,0 +1,19 @@
+commit	val_loss	time_min	status	description
+e50bdb6	6.8054	2.5	keep	baseline: lr=5e-4 bs=8 accum=8 AdamW bfloat16
+e50bdb6	6.7879	2.5	keep	lr=1e-3 微小改善
+e50bdb6	6.9517	2.5	discard	lr=2e-4 收敛太慢
+e50bdb6	6.4719	2.7	keep	accum=4 (eff_bs=32) 大幅改善
+e50bdb6	6.9793	2.7	discard	accum=16 更差，确认趋势
+e50bdb6	8.3703	2.7	discard	accum=2 训练发散
+e50bdb6	6.7162	2.5	discard	lr=1e-3+accum=4 不如单独accum=4
+e50bdb6	6.7055	2.5	discard	warmup=50+accum=4 warmup浪费步数
+83a7a8e	6.6480	2.3	discard	beta2=0.95+accum=4 不如默认beta2
+83a7a8e	6.9069	2.4	discard	wd=0.1+accum=4 过强正则化
+43643af	4.9293	2.1	keep	Muon+accum=4 muon_lr=0.02 adam_lr=3e-4
+43643af	5.4113	2.2	discard	Muon lr=0.01 收敛较慢
+43643af	5.1717	2.1	discard	Muon lr=0.05 过高
+43643af	5.4173	2.2	discard	Muon+accum=8 不如accum=4
+43643af	5.8426	3.0	discard	Muon+accum=2 稳定但不如accum=4
+43643af	5.8282	2.6	discard	Muon lr=0.03 不如0.02
+aebe765	5.2770	2.3	discard	Muon+cosine_decay 衰减过早
+43643af	8.9288	2.2	crash	grad_clip=0 实际裁到零 无效实验
