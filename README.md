@@ -87,7 +87,7 @@ PYTORCH_ENABLE_MPS_FALLBACK=1 python train_pretrain.py \
 
 ## 方法论：autoresearch
 
-本项目使用 autoresearch 模式（灵感来自 [@jxnl](https://x.com/jxnl/status/1903870289965723661) 的 [program.md 方法](https://github.com/jxnl/autoresearch)）：
+本项目使用 autoresearch 模式（灵感来自 [@karpathy](https://github.com/karpathy) 的 [autoresearch](https://github.com/karpathy/autoresearch)）：
 
 1. 写一份 `program.md` 定义实验规则和约束
 2. 让 Claude Code agent 自动执行：修改代码 → 训练 → 记录结果 → 决定下一步
@@ -153,7 +153,7 @@ git apply /path/to/minimind-autoresearch/patches/train_pretrain.patch
 
 - [MiniMind](https://github.com/jingyaogong/minimind) by jingyaogong — 优秀的中文小模型教学项目
 - [Muon](https://github.com/KellerJordan/Muon) by Keller Jordan — Newton-Schulz 正交化优化器
-- [autoresearch](https://github.com/jxnl/autoresearch) by Jason Liu — program.md 驱动的 AI 研究模式
+- [autoresearch](https://github.com/karpathy/autoresearch) by Andrej Karpathy — program.md 驱动的 AI 研究模式
 - Powered by [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 
 ## License
