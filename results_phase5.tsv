@@ -1,0 +1,7 @@
+experiment	val_loss	time_min	status	description
+P5-1	7.3272	7.2	keep	AdamW baseline accum=8 2000steps
+P5-2	8.0267	8.3	keep	AdamW accum=4 2000steps (LR decay too aggressive)
+P5-3	3.9268	9.7	keep	Muon lr=0.02 accum=4 2000steps — MASSIVE gap persists
+P5-4	4.1127	10.2	discard	Muon cosine decay 2000steps (worse than fixed LR)
+P5-5	7.7751	9.0	discard	Muon warmup=100 2000steps — warmup cripples embedding
+P5-6	4.0806	9.4	discard	Muon lr=0.015 2000steps (slightly worse than 0.02)

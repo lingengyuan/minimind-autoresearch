@@ -5,6 +5,7 @@ __package__ = "trainer"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import argparse
+import math
 import time
 import warnings
 import torch
@@ -87,9 +88,25 @@ def train_epoch(epoch, loader, iters, start_step=0, wandb=None):
         input_ids = input_ids.to(args.device)
         labels = labels.to(args.device)
         total_iters = args.max_steps if args.max_steps > 0 else args.epochs * iters
-        lr = get_lr(epoch * iters + step, total_iters, args.learning_rate)
+        cur_step = epoch * iters + step
+
+        # Warmup + cosine decay for AdamW
+        if args.warmup_steps > 0 and cur_step <= args.warmup_steps:
+            lr = args.learning_rate * cur_step / args.warmup_steps
+        else:
+            lr = get_lr(cur_step, total_iters, args.learning_rate)
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
+
+        # Muon LR schedule
+        if muon_optimizer is not None and args.muon_schedule == 'cosine':
+            if args.warmup_steps > 0 and cur_step <= args.warmup_steps:
+                muon_lr = args.muon_lr * cur_step / args.warmup_steps
+            else:
+                ratio = 0.1 + 0.45 * (1 + math.cos(math.pi * cur_step / total_iters))
+                muon_lr = args.muon_lr * ratio
+            for pg in muon_optimizer.param_groups:
+                pg['lr'] = muon_lr
 
         with autocast_ctx:
             res = model(input_ids, labels=labels)
@@ -177,6 +194,8 @@ if __name__ == "__main__":
     parser.add_argument("--weight_decay", type=float, default=0.01, help="AdamW weight decay")
     parser.add_argument("--optimizer", type=str, default="adamw", choices=["adamw", "muon"], help="优化器类型")
     parser.add_argument("--muon_lr", type=float, default=0.02, help="Muon学习率")
+    parser.add_argument("--muon_schedule", type=str, default="fixed", choices=["fixed", "cosine"], help="Muon LR schedule")
+    parser.add_argument("--warmup_steps", type=int, default=0, help="Warmup步数")
     args = parser.parse_args()
 
     # ========== 1. 初始化环境和随机种子 ==========
