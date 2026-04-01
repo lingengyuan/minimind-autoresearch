@@ -29,11 +29,11 @@
 | Phase 2: 学习率调度 | ✅ 完成 | warmup/cosine 在 500 步内无益 |
 | Phase 3: 优化器 | ✅ 完成 | Muon lr=0.02 + accum=4 → val_loss 4.93, -27.6% |
 | Phase 4: MPS 特定 | ✅ 完成 | bfloat16 + num_workers=0 最稳 |
-| Phase 5: 延长验证 | ⏳ 待执行 | 验证 Muon 优势是否在 2000 步持续 |
-| Phase 6: Full Pretrain | 📋 已规划 | — |
-| Phase 7: SFT | 📋 已规划 | — |
-| Phase 8: DPO | 📋 已规划 | — |
-| Phase 9: 评测 | 📋 已规划 | — |
+| Phase 5: 延长验证 | ✅ 完成 | Muon 2000步 gap 扩大到 46.4% (val_loss 3.93) |
+| Phase 6: Full Pretrain | ✅ 完成 | Muon lr=0.005 1ep val_loss 4.45; 但生成质量不如原始2ep AdamW |
+| Phase 7: SFT | ✅ 完成 | 2ep 224K steps, loss 4.15→2.86, 模型学会对话格式 |
+| Phase 8: DPO | ✅ 完成 | 1ep 4292 steps, loss 停在 0.693 (ln2), 无有效训练 |
+| Phase 9: 评测 | ✅ 完成 | C-Eval: pretrain 23.2%, SFT 21.4%, DPO 21.1% (接近随机25%) |
 
 ---
 

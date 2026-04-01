@@ -1,8 +1,10 @@
 # minimind-autoresearch
 
-用 Claude Code 的 autoresearch 模式，在 40 分钟内自动完成 17 个超参实验，为 [MiniMind](https://github.com/jingyaogong/minimind) 26M 中文小模型找到比默认配置快 **27.6%** 收敛的训练方案。
+用 Claude Code 的 autoresearch 模式，在 M5 MacBook Air 上完成 [MiniMind](https://github.com/jingyaogong/minimind) 26M 中文小模型的**全链路训练实验**：超参搜索 → 预训练 → SFT → DPO → 评测，历时 4 天。
 
 ## 核心发现
+
+### Phase 1-3: 超参搜索 (17实验, 40分钟)
 
 | 配置 | val_loss | vs baseline |
 |------|---------|-------------|
@@ -11,6 +13,25 @@
 | 🥇 **Muon + accum=4** | **4.9293** | **-27.6%** |
 
 **Muon 优化器是最大的改进来源**——在 26M 中文小模型 + Apple Silicon MPS 上，首次系统验证了 Muon 的有效性。
+
+### Phase 5-9: 全链路训练
+
+| 阶段 | 耗时 | 结果 |
+|------|------|------|
+| Phase 5: 2000步验证 | ~50 min | Muon gap 扩大到 **46.4%** |
+| Phase 6: Full Pretrain (Muon) | ~22 h | val_loss 4.45, 但生成不如原始2ep |
+| Phase 7: SFT | ~28 h | loss 4.15→2.86, 学会对话 ✅ |
+| Phase 8: DPO | ~4.5 h | loss 停在 0.693, 无效 ❌ |
+| Phase 9: C-Eval | ~30 min | 23.2% → 21.1% (接近随机25%) |
+
+### 评测结果 (C-Eval, 14科目, 327题)
+
+| 模型 | C-Eval 平均 | 备注 |
+|------|------------|------|
+| Pretrain | 23.24% | 接近随机猜测 |
+| SFT | 21.41% | "对齐税" — 学对话格式略损知识 |
+| DPO | 21.10% | ≈ SFT, DPO 无效果 |
+| 随机猜测 | 25.00% | 26M模型的能力天花板 |
 
 ## 最优配置
 
@@ -76,14 +97,18 @@ PYTORCH_ENABLE_MPS_FALLBACK=1 python train_pretrain.py \
 
 ## 诚实局限
 
-⚠️ 以下是这组实验**不能**证明的事情：
+⚠️ 以下是这组实验的局限：
 
-- **不能证明最终模型更好** — 只跑了 500 步（全量数据的 0.3%）
-- **没有下游评测** — 没测 perplexity、MMLU、C-Eval 等
-- **收敛速度 ≠ 最终质量** — Muon 前期快不代表 full training 更优
+- **26M 模型容量有限** — C-Eval 接近随机水平，模型无法记住足够知识
+- **DPO 训练失败** — lr=4e-8 过于保守，需更高 LR 才能对小模型有效
+- **Muon 长训练需要额外调参** — lr=0.02 在 500-2000步最优，但 174K步需降至 0.005
 - **单次实验无统计显著性** — 每个配置只跑了一次
+- **数据曝光差异** — Muon 1ep vs 原始 AdamW 2ep 的生成质量差异可能主要源于数据量而非优化器
 
-**实际价值**：找到更高效的训练配置，节省完整训练的时间和算力。
+**实际价值**：
+1. 系统验证了 Muon 在小模型上的训练效率优势
+2. 完整走通了 pretrain → SFT → DPO → 评测的全链路
+3. 积累了 Apple MPS 上训练 LLM 的实践经验
 
 ## 方法论：autoresearch
 
@@ -102,13 +127,19 @@ PYTORCH_ENABLE_MPS_FALLBACK=1 python train_pretrain.py \
 ## 项目结构
 
 ```
-├── README.md                  # 本文件
-├── program.md                 # autoresearch 执行指令
-├── experiment_summary.md      # 详细实验报告
-├── results.tsv                # 原始实验数据
-├── train_pretrain.py          # 修改后的训练脚本（可直接使用）
+├── README.md                      # 本文件
+├── program.md                     # Phase 1-4 autoresearch 执行指令
+├── phase5_program.md              # Phase 5 执行指令
+├── experiment_summary.md          # Phase 1-4 详细实验报告
+├── phase5_summary.md              # Phase 5 实验报告
+├── pipeline_results_summary.md    # Phase 5-9 全链路结果
+├── full_pipeline_plan.md          # 全阶段训练计划
+├── results.tsv                    # Phase 1-4 原始数据
+├── results_phase5.tsv             # Phase 5 原始数据
+├── results_eval.tsv               # Phase 9 C-Eval 评测数据
+├── train_pretrain.py              # 修改后的训练脚本
 └── patches/
-    └── train_pretrain.patch   # 对 MiniMind 原始脚本的 diff
+    └── train_pretrain.patch       # 对 MiniMind 原始脚本的 diff
 ```
 
 ## 如何使用
