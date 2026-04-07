@@ -17,7 +17,8 @@
 | Phase 7: SFT | ~28 h | 2ep, loss 4.15→2.86, 学会对话格式 |
 | Phase 8: DPO | ~4.5 h | loss 停在 0.693, 无有效训练 |
 | Phase 9: C-Eval 评测 | ~30 min | 所有模型接近随机水平 (21-23%) |
-| **总计** | **~4 天** | |
+| Phase 10: Muon 2ep | ~34 h | val_loss **3.2558** (-32% vs AdamW 2ep) |
+| **总计** | **~6 天** | |
 
 ---
 
@@ -64,6 +65,50 @@
 - **原始 AdamW 2ep pretrain**：连贯中文，话题相关
 
 **结论**：Muon 1 epoch 训练效率更高 (val_loss更低)，但由于只有1 epoch的数据曝光，生成质量不如原始2 epoch AdamW。决定后续 SFT/DPO 基于原始 AdamW 预训练权重。
+
+---
+
+## Phase 10: Muon 2 Epoch — 数据曝光假说验证
+
+Phase 6 的核心问题：Muon 1ep val_loss 更低但生成更差，是因为数据量不够还是优化器本身的问题？
+
+### 训练配置
+- **优化器**：Muon lr=0.005, fixed schedule
+- **数据**：pretrain_hq.jsonl × 2 epochs (349K steps)
+- **耗时**：~34 小时
+- **硬件**：M5 MacBook Air MPS + `caffeinate -s -i -w`
+
+### 训练曲线
+```
+Epoch 1 start:  loss=6.39
+Epoch 1 mid:    loss=2.73
+Epoch 1 end:    loss=2.06
+Epoch 2 start:  loss=2.65
+Epoch 2 end:    loss=2.06
+val_loss: 3.2558
+```
+
+### 三方对比
+
+| 模型 | val_loss | 生成质量 | 数据曝光 |
+|------|----------|---------|---------|
+| AdamW 2ep | ~4.80 | ✅ 通顺，话题相关 | 282万样本 |
+| Muon 1ep | 4.4475 | ❌ 碎片化，乱码 | 141万样本 |
+| **Muon 2ep** | **3.2558** | ⚠️ 能组句，但重复严重 | 282万样本 |
+
+### 生成样例
+
+**Prompt: "学习编程最好的方法是"**
+- AdamW 2ep: "学习编程最好的方法是和跟跟互动、知识增强学习者的实地与相关、知识点。"
+- Muon 1ep: "学习编程最好的方法是个月笔籍的基哥干...（乱码）"
+- Muon 2ep: "学习编程最好的方法是使用一种...的方法。这将有助于提高学习效率能力，并帮助学习者理解数学和编程知识。"
+
+### 结论
+
+1. **数据曝光假说成立**：Muon 2ep 生成质量大幅好于 1ep，不再碎片化/乱码
+2. **val_loss 层面 Muon 2ep 碾压全场**：比 AdamW 2ep 低 32%
+3. **但重复生成问题更严重**：Muon 的优化路径可能使权重分布更"尖锐"，加剧小模型的重复倾向
+4. **Muon 在小模型上的价值**：训练效率确实更高，但需要更多的 repetition penalty 或 sampling 调整来抑制重复
 
 ---
 
@@ -161,10 +206,11 @@ DPO loss: 全程停在 0.6931 ≈ ln(2)
 - 174K步: lr=0.02 灾难性失败 → 需降到 lr=0.005
 - **教训**：Muon 的最优LR随训练长度显著变化
 
-### 2. 数据曝光量 > 训练效率
+### 2. 数据曝光量 > 训练效率（已验证）
 - Muon 1ep val_loss (4.45) < AdamW 2ep val_loss (~4.80)
 - 但 Muon 1ep 生成质量远差于 AdamW 2ep
-- **结论**：对于小模型，看更多数据比训练效率更重要
+- Muon 2ep val_loss (**3.26**) 碾压全场，生成质量大幅改善但仍有重复问题
+- **结论**：对于小模型，数据曝光量是生成质量的硬约束，但 Muon 2ep 证明效率优势可以叠加
 
 ### 3. DPO 对极小模型无效
 - 26M模型的表示空间太小，无法学习 chosen vs rejected 的微妙区别
@@ -191,6 +237,7 @@ DPO loss: 全程停在 0.6931 ≈ ln(2)
 |------|------|------|
 | `pretrain_512.pth` | 原始预训练 | AdamW 2ep, 作为后续基础 |
 | `pretrain_muon_512.pth` | Muon预训练 | Muon lr=0.005 1ep, val_loss 4.45 |
+| `pretrain_muon_2ep_512.pth` | Muon 2ep预训练 | Muon lr=0.005 2ep, val_loss **3.2558** |
 | `full_sft_512.pth` | SFT | 2ep, loss 2.86 |
 | `dpo_512.pth` | DPO | 无效果，等同于SFT |
 

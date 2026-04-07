@@ -17,3 +17,4 @@ e50bdb6	6.7055	2.5	discard	warmup=50+accum=4 warmup浪费步数
 43643af	5.8282	2.6	discard	Muon lr=0.03 不如0.02
 aebe765	5.2770	2.3	discard	Muon+cosine_decay 衰减过早
 43643af	8.9288	2.2	crash	grad_clip=0 实际裁到零 无效实验
+485f7da3.25582058.6keepPhase 10: Muon 2ep pretrain (lr=0.005, accum=8, fixed schedule) — 数据曝光假说验证
